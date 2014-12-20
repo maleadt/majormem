@@ -9,13 +9,13 @@
 // Matching map
 const QChar letters[] = {'s', 't', 'n', 'm', 'r', 'l', 'd', 'k', 'f', 'p'};
 
-QStringList find_words(const QStringList& dictionary, const QString& sequence) {
+QStringList find_words(const QStringList &dictionary, const QString &sequence) {
     QStringList regex_builder;
 
     // Build the regex string
     QString joker = "[aeiou]*";
     regex_builder << "^" << joker;
-    for (const auto& c : sequence) {
+    for (const auto &c : sequence) {
         regex_builder << letters[c.digitValue()] << joker;
     }
     regex_builder << "$";
@@ -25,7 +25,7 @@ QStringList find_words(const QStringList& dictionary, const QString& sequence) {
 
     // Process words
     QStringList matches;
-    for (const auto& word: dictionary) {
+    for (const auto &word : dictionary) {
         if (regex.exactMatch(word) && word.size() >= 2) {
             matches << word;
         }
@@ -41,10 +41,11 @@ struct CombinationItem {
 
 // FIXME: strangely, OpenMP doesn't speed things up...
 //        Thread congestion? Prepartition?
-QList<CombinationItem> find_combinations(const QStringList& dictionary, const QString& sequence) {
+QList<CombinationItem> find_combinations(const QStringList &dictionary,
+                                         const QString &sequence) {
     QList<CombinationItem> combinations;
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int len = 1; len <= sequence.length(); len++) {
         CombinationItem combination;
 
@@ -60,16 +61,17 @@ QList<CombinationItem> find_combinations(const QStringList& dictionary, const QS
             if (remainder_length > 0) {
                 // TODO: change to rightRef when 5.4 is released
                 QString remainder = sequence.right(sequence.length() - len);
-                QList<CombinationItem> remainder_combinations = find_combinations(dictionary, remainder);
+                QList<CombinationItem> remainder_combinations =
+                    find_combinations(dictionary, remainder);
                 if (remainder_combinations.size() > 0) {
                     // Found valid child combinations
                     combination.children = remainder_combinations;
-                    #pragma omp critical
+#pragma omp critical
                     combinations << combination;
                 }
             } else {
-                // No remainder, we've reached the end
-                #pragma omp critical
+// No remainder, we've reached the end
+#pragma omp critical
                 combinations << combination;
             }
         }
@@ -81,12 +83,15 @@ QList<CombinationItem> find_combinations(const QStringList& dictionary, const QS
 QList<QList<QStringList>> flatten(QList<CombinationItem> combinations) {
     QList<QList<QStringList>> flattened;
 
-    // List all possible combinations (each having a set of matches for a different subsequence)
-    for (const auto &combination: combinations) {
-        // Check whether we still have a list of combinations for the rest of the sequence
+    // List all possible combinations (each having a set of matches for a
+    // different subsequence)
+    for (const auto &combination : combinations) {
+        // Check whether we still have a list of combinations for the rest of
+        // the sequence
         if (combination.children.length() > 0) {
-            QList<QList<QStringList>> remainder_flattened = flatten(combination.children);
-            for (auto &sublist: remainder_flattened)
+            QList<QList<QStringList>> remainder_flattened =
+                flatten(combination.children);
+            for (auto &sublist : remainder_flattened)
                 sublist.prepend(combination.words);
             flattened << remainder_flattened;
         }
@@ -103,27 +108,24 @@ QList<QList<QStringList>> flatten(QList<CombinationItem> combinations) {
 //
 // Used to sort a list from shortest to longest word, and to sort the
 // partitioning from the shortest to the longest
-template<typename T>
-struct LengthComparator {
-    bool operator()(T& a, T& b) const {
-        return a.length() <= b.length();
-    }
+template <typename T> struct LengthComparator {
+    bool operator()(T &a, T &b) const { return a.length() <= b.length(); }
 };
 
-void display_partitioning(QList<QStringList>& partitioning) {
+void display_partitioning(QList<QStringList> &partitioning) {
     // NOTE: each partitioning is a fixed constellation (eg. 123456 -> 12 345 6)
     // with a varying set of possibilities for each set
-    int partitions = partitioning.size();   // can be expensive on non-const arg
+    int partitions = partitioning.size(); // can be expensive on non-const arg
 
     // Determine the maximal amount of options (determines the rowcount) and
     // character length (determines the column width)
     int rowcount = 0;
     QList<unsigned int> colwidths;
     colwidths.reserve(partitions);
-    for (auto& options: partitioning) {
+    for (auto &options : partitioning) {
         rowcount = qMax(rowcount, options.size());
         int colwidth = 0;
-        for (const auto word: options)
+        for (const auto word : options)
             colwidth = qMax(colwidth, word.length());
         colwidths.append(colwidth);
 
@@ -134,8 +136,9 @@ void display_partitioning(QList<QStringList>& partitioning) {
     QTextStream s(stdout);
     for (int row = 0; row < rowcount; ++row) {
         for (int column = 0; column < partitions; ++column) {
-            s.setFieldWidth(colwidths[column]+3);
-            s << (row < partitioning[column].size() ? partitioning[column][row] : " ");
+            s.setFieldWidth(colwidths[column] + 3);
+            s << (row < partitioning[column].size() ? partitioning[column][row]
+                                                    : " ");
         }
         s << "\n";
     }
@@ -143,8 +146,7 @@ void display_partitioning(QList<QStringList>& partitioning) {
     s.flush();
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // Prompt for word
     QString sequence;
     if (argc == 1) {
@@ -160,13 +162,14 @@ int main(int argc, char *argv[])
     QDir appdir = QDir(QDir::currentPath());
     QStringList dict_fns = appdir.entryList(QStringList("*.dic"), QDir::Files);
     QStringList words;
-    for (auto& dict_fn: dict_fns) {
+    for (auto &dict_fn : dict_fns) {
         std::cout << " - " << dict_fn.toStdString() << std::endl;
 
         // Open
         QFile dict(dict_fn);
         if (!dict.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            std::cerr << "Could not open dictionary" << dict_fn.toStdString() << std::endl;
+            std::cerr << "Could not open dictionary" << dict_fn.toStdString()
+                      << std::endl;
             return -1;
         }
 
@@ -188,8 +191,9 @@ int main(int argc, char *argv[])
     QList<QList<QStringList>> flattened = flatten(combinations);
 
     // Display
-    qSort(flattened.end(), flattened.begin(), LengthComparator<QList<QStringList>>());
-    for (auto& partitioning: flattened) {
+    qSort(flattened.end(), flattened.begin(),
+          LengthComparator<QList<QStringList>>());
+    for (auto &partitioning : flattened) {
         display_partitioning(partitioning);
     }
 
