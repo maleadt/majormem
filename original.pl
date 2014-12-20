@@ -7,7 +7,7 @@ use List::Util qw/max/;
 
 use Data::Dumper;
 
-open(my $dict, '<', 'dutch.dat');
+open(my $dict, '<', 'dutch.dic') || die();
 
 my @letters = qw/s t n m r l d k f p/;
 
