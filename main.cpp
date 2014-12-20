@@ -1,8 +1,8 @@
 #include <QFile>
+#include <QDir>
 #include <QList>
 #include <QTextStream>
 #include <QRegExp>
-#include <QDebug>
 
 #include <iostream>
 
@@ -143,7 +143,6 @@ void display_partitioning(QList<QStringList>& partitioning) {
     s.flush();
 }
 
-
 int main(int argc, char *argv[])
 {
     // Prompt for word
@@ -156,30 +155,36 @@ int main(int argc, char *argv[])
         sequence = argv[1];
     }
 
-    // Open dictionary
-    qDebug() << "Opening dictionary";
-    QFile dict("dutch.dat");
-    if (!dict.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        std::cerr << "Could not open file" << std::endl;
-        return -1;
-    }
-
-    // Read words
-    qDebug() << "Reading words";
+    // Process dictionaries
+    std::cout << "Processing dictionaries" << std::endl;
+    QDir appdir = QDir(QDir::currentPath());
+    QStringList dict_fns = appdir.entryList(QStringList("*.dic"), QDir::Files);
     QStringList words;
-    QTextStream in(&dict);
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        words.append(line);
+    for (auto& dict_fn: dict_fns) {
+        std::cout << " - " << dict_fn.toStdString() << std::endl;
+
+        // Open
+        QFile dict(dict_fn);
+        if (!dict.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            std::cerr << "Could not open dictionary" << dict_fn.toStdString() << std::endl;
+            return -1;
+        }
+
+        // Read words
+        QTextStream in(&dict);
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            words.append(line);
+        }
+        dict.close();
     }
-    dict.close();
 
     // Find combinations
-    qDebug() << "Finding combinations";
+    std::cout << "Finding combinations" << std::endl;
     QList<CombinationItem> combinations = find_combinations(words, sequence);
 
     // Flatten
-    qDebug() << "Flattening";
+    std::cout << "Flattening" << std::endl;
     QList<QList<QStringList>> flattened = flatten(combinations);
 
     // Display

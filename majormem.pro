@@ -21,3 +21,5 @@ CONFIG += c++11
 
 QMAKE_CXXFLAGS += -fopenmp
 LIBS += -fopenmp
+
+QMAKE_CXXFLAGS += -Wall -Werror
