@@ -16,3 +16,8 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp
+
+CONFIG += c++11
+
+QMAKE_CXXFLAGS += -fopenmp
+LIBS += -fopenmp
